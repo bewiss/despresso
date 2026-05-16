@@ -436,7 +436,7 @@ class ProfilesScreenState extends State<ProfilesScreen> {
 
   getProfileFromFolder(context) async {
     filePickerResult = await FilePicker.platform
-        .pickFiles(lockParentWindow: true, type: FileType.custom, allowedExtensions: ["json", "tcl"]);
+        .pickFiles(lockParentWindow: true, type: FileType.custom, allowedExtensions: ["json"]);
 
     if (filePickerResult != null) {
       pickedFile = File(filePickerResult!.files.single.path.toString());
@@ -466,6 +466,16 @@ class ProfilesScreenState extends State<ProfilesScreen> {
   loadJsonProfile({required File file}) async {
     try {
       var lines = await file.readAsString();
+      
+      // Check if file is TCL format
+      if (file.path.endsWith('.tcl') || lines.trim().startsWith('advanced_shot')) {
+        getIt<SnackbarService>().notify(
+          "TCL profiles are not yet supported. Please convert to JSON format first.\n\nOption 1: Upload to visualizer.coffee and use the 'visualizer code' import.\nOption 2: Export as JSON from the original Decent app.",
+          SnackbarNotificationType.severe
+        );
+        return;
+      }
+      
       var profile = profileService.parseDefaultProfile(lines, false);
       profile.isDefault = false;
       profile.id = const Uuid().v1().toString();
@@ -478,6 +488,10 @@ class ProfilesScreenState extends State<ProfilesScreen> {
       });
     } catch (e) {
       log.severe("Error loading profile $e");
+      getIt<SnackbarService>().notify(
+        "Error loading profile: $e\n\nMake sure the file is in JSON format.",
+        SnackbarNotificationType.severe
+      );
     }
   }
 
